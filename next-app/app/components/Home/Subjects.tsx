@@ -72,7 +72,9 @@ function Subjects() {
             </h1>
           </div>
           <div>
-            {activeSubjects.length > 0 && <AddSubjectDialog habits={habits} empty={false} />}
+            {!subjectsLoading && activeSubjects.length > 0 && (
+              <AddSubjectDialog habits={habits} empty={false} />
+            )}
           </div>
         </div>
 
@@ -84,26 +86,22 @@ function Subjects() {
         </div>
       </div>
       <div className="flex-1 overflow-hidden flex flex-col rounded-lg border border-border mt-2">
-        {activeSubjects.length === 0 && (
+        {!subjectsLoading && activeSubjects.length === 0 && (
           <div>
             <CallToAction habits={habits} />
-            {/* <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
-            <Skeleton className="h-10 w-10 mb-2 opacity-20">
-              <CheckCircle className="h-10 w-10 mb-2 opacity-20" />
-            </Skeleton>
-            <p className="text-xl ">Add a Suject to track using the add subject !!!</p>
-          </div> */}
           </div>
         )}
-        <div className="flex-1 overflow-hidden overflow-y-auto custom-scrollbar">
-          <table className="w-full text-xs sm:text-sm lg:text-base bg-dashboard-card">
-            <tbody>
-              {activeSubjects.map((subject: Subject) => (
-                <SubjectRow key={subject.id} subject={subject} onEdit={handleEdit} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {!subjectsLoading && activeSubjects.length > 0 && (
+          <div className="flex-1 overflow-hidden overflow-y-auto custom-scrollbar">
+            <table className="w-full text-xs sm:text-sm lg:text-base bg-dashboard-card">
+              <tbody>
+                {activeSubjects.map((subject: Subject) => (
+                  <SubjectRow key={subject.id} subject={subject} onEdit={handleEdit} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <EditSubjectDialog

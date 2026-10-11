@@ -28,7 +28,7 @@ export function AddHabitDialog({ subjects, habitsCount }: AddHabitDialogProps) {
   const createHabit = useCreateHabit();
   const { hasSeenOnboarding, onboardingChoice, hasSeenConfetti } = useOnboardingStore();
 
-  const showNudge = onboardingChoice !== null && !hasSeenConfetti;
+  const showNudge = habitsCount === 0 && onboardingChoice !== null && !hasSeenConfetti;
 
   const [isOpen, setIsOpen] = useState(false);
   const [addName, setAddName] = useState('');

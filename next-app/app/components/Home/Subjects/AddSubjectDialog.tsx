@@ -32,8 +32,8 @@ export function AddSubjectDialog({ habits, empty }: AddSubjectDialogProps) {
   const restoreSubject = useRestoreSubject();
   const { hasSeenOnboarding, onboardingChoice, hasSeenConfetti } = useOnboardingStore();
 
-  // Show strobe nudge right after onboarding completes, until confetti fires
-  const showNudge = onboardingChoice !== null && !hasSeenConfetti;
+  // Show strobe nudge right after onboarding completes, only if there are no subjects yet, until confetti fires
+  const showNudge = empty && onboardingChoice !== null && !hasSeenConfetti;
 
   const [isOpen, setIsOpen] = useState(false);
   const [color, setColor] = useState('#f97316');

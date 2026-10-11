@@ -15,6 +15,7 @@ import { OnboardingCompletion } from './onboarding-completion';
 import { generateDemoData, removeDemoData } from './demo-data-generator';
 import { useAuthStore } from '@/store/useAuthStore';
 import { queryClient } from '@/lib/queryClient';
+import { useSubjects } from '@/hooks/useSubjects';
 
 const TOTAL = ONBOARDING_SLIDES.length;
 
@@ -23,6 +24,14 @@ export function OnboardingModal() {
   const { hasSeenOnboarding, markOnboardingComplete, demoDataIds, setDemoDataIds } =
     useOnboardingStore();
   const { user } = useAuthStore();
+  const { data: subjects = [] } = useSubjects();
+
+  // If user already has subjects, onboarding is already fulfilled
+  useEffect(() => {
+    if (user && subjects.length > 0 && !hasSeenOnboarding) {
+      markOnboardingComplete('fresh');
+    }
+  }, [user, subjects.length, hasSeenOnboarding, markOnboardingComplete]);
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [direction, setDirection] = useState(1);
