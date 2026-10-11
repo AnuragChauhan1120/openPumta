@@ -18,10 +18,10 @@ function ClockCircle({
 }: ClockCircleProps) {
   return (
     <div
-      className={`relative my-4 mx-2 flex items-center justify-center ${
+      className={`relative my-4 mx-2 flex items-center justify-center aspect-square shrink-0 ${
         size === 'sm'
-          ? 'aspect-square h-[min(55vw,55vh)] w-[min(55vw,55vh)] sm:h-64 sm:w-64 max-w-64 max-h-64 min-h-[180px] min-w-[180px]'
-          : 'aspect-square h-[min(75vw,50vh)] w-[min(75vw,50vh)] sm:h-[min(60vw,60vh)] sm:w-[min(60vw,60vh)] max-w-3xl max-h-3xl'
+          ? 'h-[min(55vw,55vh)] w-[min(55vw,55vh)] sm:h-64 sm:w-64 max-w-64 max-h-64 min-h-[180px] min-w-[180px]'
+          : 'h-[min(75vw,50vh)] w-[min(75vw,50vh)] sm:h-[min(60vw,60vh)] sm:w-[min(60vw,60vh)] max-w-[48rem] max-h-[48rem]'
       }`}
     >
       <div

@@ -38,7 +38,7 @@ describe('smartLayout', () => {
     }));
 
     // Verify none of them overlap
-    const overlaps = (a, b) =>
+    const overlaps = (a: any, b: any) =>
       !(
         a.x + a.width <= b.x ||
         b.x + b.width <= a.x ||
