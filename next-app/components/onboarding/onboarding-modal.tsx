@@ -29,10 +29,12 @@ export function OnboardingModal() {
   const [showCompletion, setShowCompletion] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstFocusableRef = useRef<HTMLButtonElement>(null);
   const generationAttempted = useRef(false);
+  const generationPromiseRef = useRef<Promise<any> | null>(null);
 
   // Hydration guard — deferred to avoid set-state-in-effect lint rule
   useEffect(() => {
@@ -45,7 +47,9 @@ export function OnboardingModal() {
     if (!mounted || hasSeenOnboarding || demoDataIds || generationAttempted.current || user) return;
     generationAttempted.current = true;
     requestAnimationFrame(() => setIsGenerating(true));
-    generateDemoData()
+    const promise = generateDemoData();
+    generationPromiseRef.current = promise;
+    promise
       .then((ids) => {
         setDemoDataIds(ids);
         setIsGenerating(false);
@@ -56,12 +60,19 @@ export function OnboardingModal() {
   }, [mounted, hasSeenOnboarding, demoDataIds, setDemoDataIds, user]);
 
   const cleanupDemoData = useCallback(async () => {
-    if (demoDataIds) {
-      const ids = demoDataIds;
+    let ids = useOnboardingStore.getState().demoDataIds;
+    if (!ids && generationPromiseRef.current) {
+      try {
+        ids = await generationPromiseRef.current;
+      } catch {
+        ids = null;
+      }
+    }
+    if (ids) {
       setDemoDataIds(null); // Clear immediately to prevent double-calls
       await removeDemoData(ids, false);
     }
-  }, [demoDataIds, setDemoDataIds]);
+  }, [setDemoDataIds]);
 
   const currentSlide = ONBOARDING_SLIDES[slideIndex];
   const isFullMode = currentSlide?.mode === 'full' || showCompletion;
@@ -119,8 +130,14 @@ export function OnboardingModal() {
   }, [hasSeenOnboarding, mounted]);
 
   // ── Keyboard navigation ────────────────────────────────────────────────────
-  const handleSkip = useCallback(() => {
-    cleanupDemoData();
+  const handleSkip = useCallback(async () => {
+    if (isSkipping) return;
+    setIsSkipping(true);
+    try {
+      await cleanupDemoData();
+    } catch (err) {
+      console.error('Failed to cleanup demo data during skip:', err);
+    }
     markOnboardingComplete('fresh');
     try {
       window.localStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
@@ -130,7 +147,7 @@ export function OnboardingModal() {
     }
     queryClient.clear();
     window.location.href = '/';
-  }, [markOnboardingComplete, cleanupDemoData]);
+  }, [isSkipping, cleanupDemoData, markOnboardingComplete]);
 
   const handleNext = useCallback(() => {
     if (showCompletion || isGenerating) return;
@@ -233,11 +250,21 @@ export function OnboardingModal() {
                   <button
                     ref={firstFocusableRef}
                     onClick={handleSkip}
+                    disabled={isSkipping}
                     aria-label="Skip onboarding"
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-lg hover:bg-white/5 disabled:opacity-50"
                   >
-                    Skip
-                    <X className="h-3.5 w-3.5" />
+                    {isSkipping ? (
+                      <>
+                        Skipping...
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      </>
+                    ) : (
+                      <>
+                        Skip
+                        <X className="h-3.5 w-3.5" />
+                      </>
+                    )}
                   </button>
                 </div>
 
