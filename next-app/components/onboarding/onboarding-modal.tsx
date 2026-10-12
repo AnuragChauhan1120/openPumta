@@ -21,17 +21,22 @@ const TOTAL = ONBOARDING_SLIDES.length;
 
 export function OnboardingModal() {
   const router = useRouter();
-  const { hasSeenOnboarding, markOnboardingComplete, demoDataIds, setDemoDataIds } =
-    useOnboardingStore();
-  const { user } = useAuthStore();
+  const {
+    hasSeenOnboarding,
+    markOnboardingComplete,
+    markExistingUserOnboarded,
+    demoDataIds,
+    setDemoDataIds,
+  } = useOnboardingStore();
+  const { user, loading: authLoading } = useAuthStore();
   const { data: subjects = [] } = useSubjects();
 
   // If user already has subjects, onboarding is already fulfilled
   useEffect(() => {
-    if (user && subjects.length > 0 && !hasSeenOnboarding) {
-      markOnboardingComplete('fresh');
+    if (!authLoading && user && !user.isGuest && subjects.length > 0 && !hasSeenOnboarding) {
+      markExistingUserOnboarded();
     }
-  }, [user, subjects.length, hasSeenOnboarding, markOnboardingComplete]);
+  }, [authLoading, user, subjects.length, hasSeenOnboarding, markExistingUserOnboarded]);
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -53,7 +58,15 @@ export function OnboardingModal() {
 
   // ── Auto-generate temporary demo data for the tour ────────────────────────
   useEffect(() => {
-    if (!mounted || hasSeenOnboarding || demoDataIds || generationAttempted.current || user) return;
+    if (
+      !mounted ||
+      hasSeenOnboarding ||
+      demoDataIds ||
+      generationAttempted.current ||
+      user ||
+      authLoading
+    )
+      return;
     generationAttempted.current = true;
     requestAnimationFrame(() => setIsGenerating(true));
     const promise = generateDemoData();
@@ -66,7 +79,7 @@ export function OnboardingModal() {
       .catch(() => {
         setIsGenerating(false);
       });
-  }, [mounted, hasSeenOnboarding, demoDataIds, setDemoDataIds, user]);
+  }, [mounted, hasSeenOnboarding, demoDataIds, setDemoDataIds, user, authLoading]);
 
   const cleanupDemoData = useCallback(async () => {
     let ids = useOnboardingStore.getState().demoDataIds;
@@ -192,7 +205,7 @@ export function OnboardingModal() {
 
   // ─────────────────────────────────────────────────────────────────────────────
 
-  if (!mounted || hasSeenOnboarding) return null;
+  if (!mounted || hasSeenOnboarding || authLoading) return null;
 
   return (
     <>

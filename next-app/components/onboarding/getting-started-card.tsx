@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, Circle, Trophy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useOnboardingStore } from '@/store/useOnboardingStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useSubjects } from '@/hooks/useSubjects';
 import { useHabits } from '@/hooks/useHabits';
 import { useDailyRatingStats } from '@/hooks/useRatings';
@@ -19,6 +20,7 @@ export function GettingStartedCard() {
     dismissGettingStarted,
     markConfettiSeen,
   } = useOnboardingStore();
+  const { user, loading: authLoading } = useAuthStore();
 
   const confettiFired = useRef(false);
 
@@ -26,6 +28,14 @@ export function GettingStartedCard() {
   const { data: subjects = [] } = useSubjects();
   const { data: habits = [] } = useHabits();
   const { data: ratingStats } = useDailyRatingStats();
+
+  const isExistingAccount = Boolean(!authLoading && user && !user.isGuest && subjects.length > 0);
+
+  useEffect(() => {
+    if (isExistingAccount && !gettingStartedDismissed) {
+      dismissGettingStarted();
+    }
+  }, [isExistingAccount, gettingStartedDismissed, dismissGettingStarted]);
 
   // Check 1: subject created
   useEffect(() => {
@@ -82,7 +92,7 @@ export function GettingStartedCard() {
 
   // Show for any completed onboarding who haven't dismissed
   // (show during tasks AND when all done, until dismissed)
-  const shouldRender = onboardingChoice !== null && !gettingStartedDismissed;
+  const shouldRender = !isExistingAccount && onboardingChoice !== null && !gettingStartedDismissed;
 
   const completedCount = gettingStartedTasks.filter((t) => t.completed).length;
 

@@ -9,10 +9,13 @@ import { AddSubjectDialog } from './Subjects/AddSubjectDialog';
 import { EditSubjectDialog } from './Subjects/EditSubjectDialog';
 import { SubjectRow } from './Subjects/SubjectRow';
 import CallToAction from './Subjects/CallToAction';
+import { useAuthStore } from '@/store/useAuthStore';
 
 function Subjects() {
   const { data: Subjects = [], isLoading: subjectsLoading } = useSubjects();
   const { data: habits = [] } = useHabits();
+  const { loading: authLoading } = useAuthStore();
+  const isLoading = subjectsLoading || authLoading;
 
   const activeSubjects = Subjects.filter((s: Subject) => !s.deleted && !s.isDeleted);
 
@@ -62,7 +65,7 @@ function Subjects() {
       className="flex flex-col h-full rounded-xl bg-background p-4"
       data-tour-highlight="subjects-section"
     >
-      {subjectsLoading && <SubjectSkeleton />}
+      {isLoading && <SubjectSkeleton />}
 
       <div className="shrink-0">
         <div className="my-4 flex items-start justify-between ">
@@ -72,7 +75,7 @@ function Subjects() {
             </h1>
           </div>
           <div>
-            {!subjectsLoading && activeSubjects.length > 0 && (
+            {!isLoading && activeSubjects.length > 0 && (
               <AddSubjectDialog habits={habits} empty={false} />
             )}
           </div>
@@ -86,12 +89,12 @@ function Subjects() {
         </div>
       </div>
       <div className="flex-1 overflow-hidden flex flex-col rounded-lg border border-border mt-2">
-        {!subjectsLoading && activeSubjects.length === 0 && (
+        {!isLoading && activeSubjects.length === 0 && (
           <div>
             <CallToAction habits={habits} />
           </div>
         )}
-        {!subjectsLoading && activeSubjects.length > 0 && (
+        {!isLoading && activeSubjects.length > 0 && (
           <div className="flex-1 overflow-hidden overflow-y-auto custom-scrollbar">
             <table className="w-full text-xs sm:text-sm lg:text-base bg-dashboard-card">
               <tbody>

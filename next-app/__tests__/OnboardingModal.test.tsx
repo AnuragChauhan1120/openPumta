@@ -26,4 +26,14 @@ describe('Onboarding demo data cleanup on skip', () => {
 
     expect(removeSpy).toHaveBeenCalledWith(testIds, false);
   });
+
+  it('marks existing user as onboarded with getting started card dismissed and no onboardingChoice', () => {
+    useOnboardingStore.getState().markExistingUserOnboarded();
+
+    const state = useOnboardingStore.getState();
+    expect(state.hasSeenOnboarding).toBe(true);
+    expect(state.gettingStartedDismissed).toBe(true);
+    expect(state.onboardingChoice).toBeNull();
+    expect(state.hasSeenConfetti).toBe(true);
+  });
 });

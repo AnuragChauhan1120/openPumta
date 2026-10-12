@@ -102,7 +102,7 @@ export default function Home() {
       )}
 
       <main className="flex-1 flex flex-col max-lg:landscape:grid max-lg:landscape:grid-cols-2 max-lg:landscape:gap-2 lg:grid lg:grid-cols-12 lg:grid-rows-12 gap-4 min-h-0">
-        {!subjectsLoading && subjects.length === 0 ? (
+        {!loading && !subjectsLoading && subjects.length === 0 ? (
           <div className="max-lg:landscape:col-span-2 lg:col-span-12 lg:row-span-12 flex flex-col items-center justify-center h-full min-h-[60vh] max-lg:landscape:min-h-[40vh]">
             <div className="w-full max-w-2xl bg-background rounded-xl border shadow-sm overflow-hidden p-4 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <Subjects />

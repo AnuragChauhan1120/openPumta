@@ -30,7 +30,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { getStartOfDay, getEndOfDay } from '@/lib/dateUtils';
 
 export const useSubjects = () => {
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const startOfDayOffset = user?.startOfDay || '00:00';
 
   const from = getStartOfDay(startOfDayOffset);
@@ -44,6 +44,7 @@ export const useSubjects = () => {
       );
       return data.data;
     },
+    enabled: !authLoading,
   });
 };
 

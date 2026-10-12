@@ -32,6 +32,7 @@ interface OnboardingState {
 
   // Actions
   markOnboardingComplete: (choice: OnboardingChoice) => void;
+  markExistingUserOnboarded: () => void;
   dismissGettingStarted: () => void;
   completeTask: (id: GettingStartedTask['id']) => void;
   resetOnboarding: () => void;
@@ -58,6 +59,14 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       markOnboardingComplete: (choice) =>
         set({ hasSeenOnboarding: true, onboardingChoice: choice }),
+
+      markExistingUserOnboarded: () =>
+        set({
+          hasSeenOnboarding: true,
+          gettingStartedDismissed: true,
+          hasSeenConfetti: true,
+          onboardingChoice: null,
+        }),
 
       dismissGettingStarted: () => set({ gettingStartedDismissed: true }),
 
