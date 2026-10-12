@@ -6,6 +6,8 @@ import { FieldDescription, FieldGroup } from '@/components/ui/field';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useRouter } from 'next/navigation';
+import { useQueryClient, useMutation } from '@tanstack/react-query';
+import api from '@/lib/api';
 
 export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) {
   const { user, loading, fetchUser, guestLogin, logout } = useAuthStore();
@@ -14,9 +16,26 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'div'>) 
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
+  const queryClient = useQueryClient();
+  const loginMutation = useMutation({
+    mutationFn: async () => (window.location.href = '/api/auth/google'),
+    onSuccess: async () => {
+      console.log('inside onSuccess login');
+      localStorage.removeItem('REACT_QUERY_OFFLINE_CACHE');
+      queryClient.clear();
+      console.log('cleared cache');
+      setTimeout(() => {}, 1000);
+    },
+    onError: (error) => {
+      console.error('login failed', error);
+    },
+    onSettled: () => {
+      console.log('mutation finished');
+    },
+  });
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google';
+    loginMutation.mutate();
   };
 
   const handleGuestLogin = async () => {
