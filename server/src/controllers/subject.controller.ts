@@ -4,6 +4,17 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 
+// Keep only habit IDs that belong to this user, so a subject can't be linked to someone else's habit
+const filterOwnedHabitIds = async (userId: number, ids: unknown[]): Promise<number[]> => {
+  const parsed = ids.map(Number).filter(Boolean);
+  if (parsed.length === 0) return [];
+  const owned = await prisma.habit.findMany({
+    where: { id: { in: parsed }, userId, deleted: false },
+    select: { id: true },
+  });
+  return owned.map((h) => h.id);
+};
+
 const getAllSubject = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const { to, from } = req.query;
@@ -37,6 +48,10 @@ const createSubject = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, 'Name is required');
   }
 
+  const ownedHabitIds = Array.isArray(habits)
+    ? await filterOwnedHabitIds(Number(userId), habits)
+    : [];
+
   // Check for an existing soft-deleted subject with the exact name (case-insensitive)
   const existingArchived = await prisma.subject.findFirst({
     where: {
@@ -55,10 +70,10 @@ const createSubject = asyncHandler(async (req: Request, res: Response) => {
         goalWorkSecs:
           goalWorkSecs !== undefined ? Number(goalWorkSecs) : existingArchived.goalWorkSecs,
         ...(color !== undefined && { color }),
-        ...(habits && Array.isArray(habits) && habits.length > 0
+        ...(ownedHabitIds.length > 0
           ? {
               habits: {
-                set: habits.map((id: number) => ({ id })),
+                set: ownedHabitIds.map((id) => ({ id })),
               },
             }
           : {}),
@@ -78,10 +93,10 @@ const createSubject = asyncHandler(async (req: Request, res: Response) => {
       userId: Number(userId),
       goalWorkSecs: goalWorkSecs !== undefined ? Number(goalWorkSecs) : 0,
       ...(color !== undefined && { color }),
-      ...(habits && Array.isArray(habits) && habits.length > 0
+      ...(ownedHabitIds.length > 0
         ? {
             habits: {
-              connect: habits.map((id: number) => ({ id })),
+              connect: ownedHabitIds.map((id) => ({ id })),
             },
           }
         : {}),
@@ -120,10 +135,10 @@ const updateSubject = asyncHandler(async (req: Request, res: Response) => {
       ...(name !== undefined && { name }),
       ...(goalWorkSecs !== undefined && { goalWorkSecs: Number(goalWorkSecs) }),
       ...(color !== undefined && { color }),
-      ...(habits !== undefined && Array.isArray(habits)
+      ...(Array.isArray(habits)
         ? {
             habits: {
-              set: habits.map((hId: number) => ({ id: hId })),
+              set: (await filterOwnedHabitIds(Number(userId), habits)).map((hId) => ({ id: hId })),
             },
           }
         : {}),

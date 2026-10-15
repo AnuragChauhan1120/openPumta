@@ -5,6 +5,17 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 import { startOfDay, endOfDay, setHours as setDateHours } from 'date-fns';
 
+// Keep only subject IDs that belong to this user, so a habit can't be linked to someone else's subject
+const filterOwnedSubjectIds = async (userId: number, ids: unknown[]): Promise<number[]> => {
+  const parsed = ids.map(Number).filter(Boolean);
+  if (parsed.length === 0) return [];
+  const owned = await prisma.subject.findMany({
+    where: { id: { in: parsed }, userId, deleted: false },
+    select: { id: true },
+  });
+  return owned.map((s) => s.id);
+};
+
 const getAllHabits = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?.id;
   const { from, to } = req.query;
@@ -56,7 +67,7 @@ const createHabit = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const parsedSubjectIds: number[] = Array.isArray(subjectIds)
-    ? subjectIds.map(Number).filter(Boolean)
+    ? await filterOwnedSubjectIds(Number(userId), subjectIds)
     : [];
 
   // Check if a soft-deleted habit with the same name exists — restore it instead
@@ -140,7 +151,11 @@ const updateHabit = asyncHandler(async (req: Request, res: Response) => {
 
   const resolvedSubjects =
     subjectIds !== undefined && Array.isArray(subjectIds)
-      ? { set: (subjectIds as number[]).map((sid) => ({ id: Number(sid) })) }
+      ? {
+          set: (await filterOwnedSubjectIds(Number(userId), subjectIds)).map((sid) => ({
+            id: sid,
+          })),
+        }
       : undefined;
 
   const resolvedAutoCompleteTime =
