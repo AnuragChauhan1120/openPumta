@@ -176,7 +176,7 @@ const updateHabit = asyncHandler(async (req: Request, res: Response) => {
       ...(badDayPlan !== undefined && { badDayPlan }),
       ...(resolvedSubjects !== undefined && { subjects: resolvedSubjects }),
       ...(resolvedAutoCompleteTime !== undefined && { autoCompleteTime: resolvedAutoCompleteTime }),
-      ...(deleted !== undefined && { deleted }),
+      ...(deleted !== undefined && { deleted, deletedAt: deleted ? new Date() : null }),
     },
     include: { subjects: true },
   });
@@ -451,8 +451,16 @@ const toggleHabitCompletion = asyncHandler(async (req: Request, res: Response) =
       .status(200)
       .json(new ApiResponse(200, { completed: false }, 'Habit uncompleted for today'));
   } else {
-    // If retroactively logging for a past day, use noon of that day. Otherwise use current time.
-    const logTime = date ? setDateHours(startOfDay(new Date(date as string)), 12) : new Date();
+    // If retroactively logging for a past day, place the log in the middle of that day.
+    // Prefer the client's day window: the server's timezone may differ from the user's, and a
+    // server-local noon can fall outside [from, to], making the completion invisible.
+    let logTime = new Date();
+    if (date) {
+      logTime =
+        from && to
+          ? new Date((startBoundary.getTime() + endBoundary.getTime()) / 2)
+          : setDateHours(startOfDay(new Date(date as string)), 12);
+    }
 
     await prisma.habitTimeLog.create({
       data: {
