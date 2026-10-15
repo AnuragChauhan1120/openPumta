@@ -4,6 +4,20 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '@/lib/api';
 import { invalidateSubjectTimerQueries } from '@/lib/queryClient';
+import { getStartOfDay, getEndOfDay } from '@/lib/dateUtils';
+import { useAuthStore } from '@/store/useAuthStore';
+
+// Close the subject's open log. The day window lets the server auto-complete linked habits
+// against the user's start-of-day instead of server midnight.
+const endSubjectLog = async (subjectId: number, endedAt: Date) => {
+  const offset = useAuthStore.getState().user?.startOfDay || '00:00';
+  await api.patch(`/subject/${subjectId}/endTimer`, {
+    endedAt,
+    from: getStartOfDay(offset).toISOString(),
+    to: getEndOfDay(offset).toISOString(),
+  });
+  await invalidateSubjectTimerQueries();
+};
 
 export type TimerPhase = 'work' | 'shortBreak' | 'longBreak' | 'idle';
 export type TimerMode = 'pomodoro' | 'stopwatch';
@@ -87,10 +101,7 @@ export const useTimerStore = create<TimerState>()(
 
         // 1. If already in work for THIS subject end session
         if (state.phase === 'work' && state.activeSubjectId === subjectId && state.running) {
-          await api.patch(`/subject/${state.activeSubjectId}/endTimer`, {
-            endedAt: new Date(),
-          });
-          await invalidateSubjectTimerQueries();
+          await endSubjectLog(state.activeSubjectId, new Date());
           if (state.mode === 'stopwatch') {
             set({
               phase: 'idle',
@@ -121,10 +132,7 @@ export const useTimerStore = create<TimerState>()(
         // 2. If switching subjects or currently in work, end the previous session
         if (state.phase === 'work' && state.activeSubjectId) {
           try {
-            await api.patch(`/subject/${state.activeSubjectId}/endTimer`, {
-              endedAt: new Date(),
-            });
-            await invalidateSubjectTimerQueries();
+            await endSubjectLog(state.activeSubjectId, new Date());
           } catch (e) {
             console.error('Failed to end previous timer:', e);
           }
@@ -159,10 +167,7 @@ export const useTimerStore = create<TimerState>()(
           : (state.phaseStartedAt || Date.now()) + state.durationMs;
 
         try {
-          await api.patch(`/subject/${state.activeSubjectId}/endTimer`, {
-            endedAt: new Date(targetEnd),
-          });
-          await invalidateSubjectTimerQueries();
+          await endSubjectLog(state.activeSubjectId, new Date(targetEnd));
         } catch (e) {
           console.error('Failed to end timer:', e);
         }
@@ -215,6 +220,14 @@ export const useTimerStore = create<TimerState>()(
       },
 
       reset: () => {
+        const state = get();
+        // Close the running session now; otherwise it stays open server-side and the next
+        // start closes it late, crediting the idle time in between as focus time.
+        if (state.phase === 'work' && state.running && state.activeSubjectId) {
+          endSubjectLog(state.activeSubjectId, new Date()).catch((e) =>
+            console.error('Failed to end timer on reset:', e),
+          );
+        }
         set({
           phase: 'idle',
           running: false,
