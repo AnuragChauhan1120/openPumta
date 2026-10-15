@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import express from 'express';
-import { prisma } from '../prisma/prismaClient.js';
 import userRoute from './routes/user.route.js';
 import habitRoute from './routes/habit.route.js';
 import authRoute from './routes/auth.route.js';
@@ -40,8 +39,8 @@ app.listen(process.env.PORT || 4000, () => {
   console.log(`Running on http://localhost:${process.env.PORT || 4000}`);
 });
 
-app.get('/', async (req: express.Request, res: express.Response) =>
-  res.send(await prisma.user.findMany()),
+app.get('/', (req: express.Request, res: express.Response) =>
+  res.json(new ApiResponse(200, null, 'OpenPumTa API')),
 );
 app.get('/health', async (req: express.Request, res: express.Response) =>
   res.json(new ApiResponse(200, { health: 'very nice!!' }, 'success')),
