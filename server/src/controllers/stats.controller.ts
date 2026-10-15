@@ -193,6 +193,17 @@ const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
     habitsCompletedByDate[dateStr].add(log.habitId);
   });
 
+  // A day's rate is out of the habits that were being tracked that day: archived habits only
+  // count for days before they were archived, and any habit completed that day always counts.
+  const completionRate = (date: string, completed: Set<number>) => {
+    const dayStart = new Date(`${date}T00:00:00`);
+    const tracked = new Set(completed);
+    for (const h of userHabits) {
+      if (!h.deleted || (h.deletedAt && h.deletedAt >= dayStart)) tracked.add(h.id);
+    }
+    return tracked.size > 0 ? Number(((completed.size / tracked.size) * 100).toFixed(0)) : 0;
+  };
+
   let perfectDaysLast21 = 0;
   const habitCompletionRateByDate = Object.entries(habitsCompletedByDate)
     .map(([date, habitSet]) => {
@@ -204,19 +215,16 @@ const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
         date,
         completedCount,
         isPerfect,
-        rate:
-          userHabits.length > 0
-            ? Number(((completedCount / userHabits.length) * 100).toFixed(0))
-            : 0,
+        rate: completionRate(date, habitSet),
       };
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const todayHabitCompletion = habitsCompletedByDate[getLocalIsoDate(today)]?.size || 0;
-  const todayHabitRate =
-    userHabits.length > 0
-      ? Number(((todayHabitCompletion / userHabits.length) * 100).toFixed(0))
-      : 0;
+  const todayDateStr = getLocalIsoDate(today);
+  const todayHabitRate = completionRate(
+    todayDateStr,
+    habitsCompletedByDate[todayDateStr] ?? new Set(),
+  );
 
   return res.status(200).json(
     new ApiResponse(
