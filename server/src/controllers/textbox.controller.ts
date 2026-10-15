@@ -4,6 +4,15 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
 
+// Ensure the text box exists, is live, and sits in one of the user's spaces
+const assertOwnedTextBox = async (id: number, spaceId: number, userId: number) => {
+  const textBox = await prisma.textBox.findFirst({
+    where: { id, spaceId, deleted: false, space: { userId, deleted: false } },
+  });
+  if (!textBox) throw new ApiError(404, 'TextBox not found');
+  return textBox;
+};
+
 const getTextBoxes = asyncHandler(async (req: Request, res: Response) => {
   const { spaceId } = req.params;
   const userId = req.user?.id;
@@ -50,10 +59,11 @@ const createTextBox = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const updateTextBoxLayout = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { id, spaceId } = req.params;
   const { layout } = req.body;
 
   if (!layout) throw new ApiError(400, 'Layout is required');
+  await assertOwnedTextBox(Number(id), Number(spaceId), Number(req.user?.id));
 
   const updated = await prisma.textBox.update({
     where: { id: Number(id) },
@@ -64,10 +74,11 @@ const updateTextBoxLayout = asyncHandler(async (req: Request, res: Response) => 
 });
 
 const updateTextBoxContent = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { id, spaceId } = req.params;
   const { content } = req.body;
 
   if (!content) throw new ApiError(400, 'Content is required');
+  await assertOwnedTextBox(Number(id), Number(spaceId), Number(req.user?.id));
 
   const updated = await prisma.textBox.update({
     where: { id: Number(id) },
@@ -78,7 +89,8 @@ const updateTextBoxContent = asyncHandler(async (req: Request, res: Response) =>
 });
 
 const deleteTextBox = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { id, spaceId } = req.params;
+  await assertOwnedTextBox(Number(id), Number(spaceId), Number(req.user?.id));
 
   await prisma.textBox.update({
     where: { id: Number(id) },
