@@ -454,8 +454,10 @@ const toggleHabitCompletion = asyncHandler(async (req: Request, res: Response) =
     // If retroactively logging for a past day, place the log in the middle of that day.
     // Prefer the client's day window: the server's timezone may differ from the user's, and a
     // server-local noon can fall outside [from, to], making the completion invisible.
+    // Clients send `date` for today as well, so keep "now" whenever it falls inside the window.
     let logTime = new Date();
-    if (date) {
+    const nowInWindow = logTime >= startBoundary && logTime <= endBoundary;
+    if (date && !nowInWindow) {
       logTime =
         from && to
           ? new Date((startBoundary.getTime() + endBoundary.getTime()) / 2)

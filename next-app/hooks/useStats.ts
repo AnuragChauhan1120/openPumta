@@ -12,15 +12,13 @@ export interface TimelineItem {
 }
 
 import { useAuthStore } from '@/store/useAuthStore';
-import { getStartOfDay, getEndOfDay } from '@/lib/dateUtils';
+import { getStartOfDay, getEndOfDay, getDayWindow } from '@/lib/dateUtils';
 
 export const useDailyTimeline = (date?: string) => {
   const { user } = useAuthStore();
   const startOfDayOffset = user?.startOfDay || '00:00';
 
-  const baseDate = date ? new Date(date) : new Date();
-  const from = getStartOfDay(startOfDayOffset, baseDate);
-  const to = getEndOfDay(startOfDayOffset, baseDate);
+  const { from, to } = getDayWindow(startOfDayOffset, date);
 
   return useQuery<TimelineItem[]>({
     queryKey: ['timeline', date, startOfDayOffset],

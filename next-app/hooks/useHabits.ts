@@ -78,15 +78,13 @@ export const useCreateHabit = () => {
 };
 
 import { useAuthStore } from '@/store/useAuthStore';
-import { getStartOfDay, getEndOfDay } from '@/lib/dateUtils';
+import { getDayWindow } from '@/lib/dateUtils';
 
 export const useHabitDashboard = (dateStr?: string) => {
   const { user } = useAuthStore();
   const startOfDayOffset = user?.startOfDay || '00:00';
 
-  const baseDate = dateStr ? new Date(dateStr) : new Date();
-  const from = getStartOfDay(startOfDayOffset, baseDate);
-  const to = getEndOfDay(startOfDayOffset, baseDate);
+  const { from, to } = getDayWindow(startOfDayOffset, dateStr);
 
   return useQuery({
     queryKey: ['habitDashboard', dateStr, startOfDayOffset],
@@ -132,9 +130,7 @@ export const useToggleHabitCompletion = () => {
       isBadDayPlan?: boolean;
       date?: string;
     }) => {
-      const baseDate = date ? new Date(date) : new Date();
-      const from = getStartOfDay(startOfDayOffset, baseDate);
-      const to = getEndOfDay(startOfDayOffset, baseDate);
+      const { from, to } = getDayWindow(startOfDayOffset, date);
 
       const { data } = await api.patch(`/habits/${habitId}/toggle`, {
         isBadDayPlan,
