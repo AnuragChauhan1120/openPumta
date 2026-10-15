@@ -229,35 +229,49 @@ export const seedDemoData = asyncHandler(async (req: Request, res: Response) => 
 
 export const cleanupDemoData = asyncHandler(async (req: Request, res: Response) => {
   const { ids, keepTemplate } = req.body;
+  const userIdNum = Number(req.user?.id);
 
   if (!ids) {
     return res.status(400).json(new ApiResponse(400, null, 'No IDs provided'));
   }
 
+  const toIds = (list: unknown): number[] =>
+    Array.isArray(list) ? list.map(Number).filter(Number.isInteger) : [];
+  const ratingIds = toIds(ids.ratings);
+  const habitIds = toIds(ids.habits);
+  const subjectIds = toIds(ids.subjects);
+  const spaceIds = toIds(ids.spaces);
+
+  // Every delete is scoped to the caller so IDs from the body can't touch other users' data
+
   // Always delete ratings as they are historical
-  if (ids.ratings && ids.ratings.length > 0) {
-    await prisma.dailyRating.deleteMany({ where: { id: { in: ids.ratings } } });
+  if (ratingIds.length > 0) {
+    await prisma.dailyRating.deleteMany({ where: { id: { in: ratingIds }, userId: userIdNum } });
   }
 
   if (keepTemplate) {
     // Keep Spaces, Subjects, Habits. Only delete their logs.
-    if (ids.habits && ids.habits.length > 0) {
-      await prisma.habitTimeLog.deleteMany({ where: { habitId: { in: ids.habits } } });
+    if (habitIds.length > 0) {
+      await prisma.habitTimeLog.deleteMany({
+        where: { habitId: { in: habitIds }, habit: { userId: userIdNum } },
+      });
     }
-    if (ids.subjects && ids.subjects.length > 0) {
-      await prisma.subjectLog.deleteMany({ where: { subjectId: { in: ids.subjects } } });
+    if (subjectIds.length > 0) {
+      await prisma.subjectLog.deleteMany({
+        where: { subjectId: { in: subjectIds }, subject: { userId: userIdNum } },
+      });
     }
   } else {
     // Fresh start: delete everything (Spaces, Habits, Subjects)
     // Prisma Cascade handles their logs automatically
-    if (ids.spaces && ids.spaces.length > 0) {
-      await prisma.space.deleteMany({ where: { id: { in: ids.spaces } } });
+    if (spaceIds.length > 0) {
+      await prisma.space.deleteMany({ where: { id: { in: spaceIds }, userId: userIdNum } });
     }
-    if (ids.habits && ids.habits.length > 0) {
-      await prisma.habit.deleteMany({ where: { id: { in: ids.habits } } });
+    if (habitIds.length > 0) {
+      await prisma.habit.deleteMany({ where: { id: { in: habitIds }, userId: userIdNum } });
     }
-    if (ids.subjects && ids.subjects.length > 0) {
-      await prisma.subject.deleteMany({ where: { id: { in: ids.subjects } } });
+    if (subjectIds.length > 0) {
+      await prisma.subject.deleteMany({ where: { id: { in: subjectIds }, userId: userIdNum } });
     }
   }
 
