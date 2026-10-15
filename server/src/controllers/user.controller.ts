@@ -5,24 +5,33 @@ import asyncHandler from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 
-const getAllUsers = asyncHandler(async (req: Request, res: Response) => {
-  const users = await prisma.user.findMany({
-    where: { deleted: false },
-  });
-  return res.status(200).json(new ApiResponse(200, users, 'Users fetched successfully'));
-});
+// Users may only modify their own account; the :id param must match the token's user
+const resolveSelfId = (req: Request): number => {
+  const userId = req.user ? (req.user as { id: number }).id : null;
+  if (!userId) {
+    throw new ApiError(401, 'Unauthorized');
+  }
+  const { id } = req.params;
+  if (id !== undefined && Number(id) !== userId) {
+    throw new ApiError(403, 'Forbidden');
+  }
+  return userId;
+};
 
 const updateUser = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const idNum = Number(id);
-  const { email, name, avatarUrl, startOfDay, activeAvatar } = req.body;
+  const userId = resolveSelfId(req);
+  // Email is tied to the Google account used for login, so it is not editable here
+  const { name, avatarUrl, startOfDay, activeAvatar } = req.body;
+
+  if (startOfDay !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(startOfDay)) {
+    throw new ApiError(400, 'startOfDay must be in HH:MM format');
+  }
 
   const updatedUser = await prisma.user.update({
     where: {
-      id: idNum,
+      id: userId,
     },
     data: {
-      email,
       name,
       avatarUrl,
       startOfDay,
@@ -34,12 +43,11 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 const deleteUser = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const numId = Number(id);
+  const userId = resolveSelfId(req);
 
   const deletedUser = await prisma.user.update({
     where: {
-      id: numId,
+      id: userId,
     },
     data: {
       deleted: true,
@@ -47,23 +55,6 @@ const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   });
 
   return res.status(200).json(new ApiResponse(200, deletedUser, 'User deleted successfully'));
-});
-
-const addUser = asyncHandler(async (req: Request, res: Response) => {
-  const { email, name } = req.body;
-
-  if (!email) {
-    throw new ApiError(400, 'Email is required');
-  }
-
-  const newUser = await prisma.user.create({
-    data: {
-      email,
-      name,
-    },
-  });
-
-  return res.status(201).json(new ApiResponse(201, newUser, 'User added successfully'));
 });
 
 const getLifetimeFocusTime = asyncHandler(async (req: Request, res: Response) => {
@@ -161,12 +152,4 @@ const testPushNotification = asyncHandler(async (req: Request, res: Response) =>
   }
 });
 
-export {
-  getAllUsers,
-  addUser,
-  updateUser,
-  deleteUser,
-  getLifetimeFocusTime,
-  savePushToken,
-  testPushNotification,
-};
+export { updateUser, deleteUser, getLifetimeFocusTime, savePushToken, testPushNotification };

@@ -1,9 +1,7 @@
 import express from 'express';
 import passport from '../config/passport.js';
 import {
-  getAllUsers,
   deleteUser,
-  addUser,
   updateUser,
   getLifetimeFocusTime,
   savePushToken,
@@ -11,13 +9,13 @@ import {
 } from '../controllers/user.controller.js';
 const router = express.Router();
 
+router.use(passport.authenticate('jwt', { session: false }));
+
 router
-  .get('/', getAllUsers)
-  .post('/', addUser)
-  .delete('/', passport.authenticate('jwt', { session: false }), deleteUser)
-  .post('/push-token', passport.authenticate('jwt', { session: false }), savePushToken)
-  .post('/push-test', passport.authenticate('jwt', { session: false }), testPushNotification)
-  .get('/lifetime-focus', passport.authenticate('jwt', { session: false }), getLifetimeFocusTime)
+  .delete('/', deleteUser)
+  .post('/push-token', savePushToken)
+  .post('/push-test', testPushNotification)
+  .get('/lifetime-focus', getLifetimeFocusTime)
   .patch('/:id', updateUser)
   .delete('/:id', deleteUser);
 
