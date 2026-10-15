@@ -1,4 +1,4 @@
-import { getLocalIsoDate } from '@/lib/utils';
+import { getLocalIsoDate, parseLocalIsoDate } from '@/lib/utils';
 // ─── Pure metric computation functions ──────────────────────────────────────
 // No side effects, no React, no API calls. Just math on data.
 
@@ -105,7 +105,7 @@ export function computeBounceBacks(habits: any[]) {
       ...new Set<string>(logs.map((l: any) => getLocalIsoDate(new Date(l.startedAt)))),
     ].sort();
 
-    const firstDate = new Date(sortedDates[0]);
+    const firstDate = parseLocalIsoDate(sortedDates[0]);
     const today = new Date();
     today.setHours(23, 59, 59, 999);
 

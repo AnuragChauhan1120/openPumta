@@ -25,7 +25,17 @@ export function ConvertTimerToSecs({ hr, min, sec }: { hr: number; min: number; 
 }
 export const pad = (n: number) => String(n).padStart(2, '0');
 
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+// Parse "YYYY-MM-DD" as local midnight. new Date('YYYY-MM-DD') is UTC midnight,
+// which is the previous day for anyone west of UTC.
+export function parseLocalIsoDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export function getLocalIsoDate(date: Date | string | number = new Date()): string {
+  if (typeof date === 'string' && DATE_ONLY.test(date)) return date;
   const d = new Date(date);
   const year = d.getFullYear();
   const month = pad(d.getMonth() + 1);

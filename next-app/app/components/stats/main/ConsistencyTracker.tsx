@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { Habit } from '@/types/habit';
-import { getLocalIsoDate } from '@/lib/utils';
+import { getLocalIsoDate, parseLocalIsoDate } from '@/lib/utils';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ConsistencyTrackerProps {
@@ -19,7 +19,7 @@ export default function ConsistencyTracker({ habits, selectedDate }: Consistency
 
     let start = new Date(end);
     if (startDateStr) {
-      start = new Date(startDateStr);
+      start = parseLocalIsoDate(startDateStr);
       start.setHours(0, 0, 0, 0);
       if (start > end) {
         start = new Date(end);
@@ -91,7 +91,7 @@ export default function ConsistencyTracker({ habits, selectedDate }: Consistency
           </div>
           <div className="flex gap-2 overflow-x-auto pb-2 items-center justify-between custom-scrollbar">
             {daysArray.map((dateStr) => {
-              const dateObj = new Date(dateStr);
+              const dateObj = parseLocalIsoDate(dateStr);
               const dayNum = dateObj.getDate();
               const done = habit.completionDates.has(dateStr);
               const isBadDayPlan = done ? habit.completionDates.get(dateStr) : false;

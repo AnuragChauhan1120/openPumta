@@ -9,7 +9,7 @@ import { WeeklyPatternChart } from './Stats/WeeklyPatternChart';
 import { SessionStatsCard } from './Stats/SessionStatsCard';
 
 import { useTimerStore } from '@/store/useTimerStore';
-import { getLocalIsoDate } from '@/lib/utils';
+import { getLocalIsoDate, parseLocalIsoDate } from '@/lib/utils';
 
 const FALLBACK_COLORS = ['#0088FE', '#FF8042', '#00C49F', '#FFBB28', '#FF8042'];
 
@@ -108,7 +108,7 @@ function Stats() {
     augmentedFocusData
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((d: any) => ({
-        date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+        date: parseLocalIsoDate(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
         hours: d.focusTimeHrs,
       }))
       .slice(-7) || [];
@@ -117,7 +117,7 @@ function Stats() {
     statsData?.habitCompletionRateByDate
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ?.map((d: any) => ({
-        date: new Date(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
+        date: parseLocalIsoDate(d.date).toLocaleDateString('en-US', { weekday: 'short' }),
         rate: d.rate,
       }))
       .slice(-7) || [];

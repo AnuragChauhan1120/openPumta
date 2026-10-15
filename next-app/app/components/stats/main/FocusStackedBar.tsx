@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { parseLocalIsoDate } from '@/lib/utils';
 
 export interface DailySubjectFocus {
   date: string; // YYYY-MM-DD
@@ -92,7 +93,7 @@ const CustomizedLabel = (props: any) => {
 export default function FocusStackedBar({ data, subjects, onBarClick }: FocusStackedBarProps) {
   const formattedData = useMemo(() => {
     return data.map((d) => {
-      const dateObj = new Date(d.date);
+      const dateObj = parseLocalIsoDate(d.date);
       return {
         ...d,
         displayDate: `${dateObj.getMonth() + 1}/${dateObj.getDate()}`,
