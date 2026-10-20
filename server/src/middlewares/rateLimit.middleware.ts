@@ -45,8 +45,8 @@ export function rateLimit({ name, windowSeconds, max }: RateLimitOptions) {
 }
 
 /** Generous limit applied to the whole API */
-export const apiLimiter = rateLimit({ name: 'api', windowSeconds: 60, max: 300 });
+export const apiLimiter = rateLimit({ name: 'api', windowSeconds: 60, max: 1000 });
 /** Tight limit for login-style endpoints (guest account creation, OAuth) */
-export const authLimiter = rateLimit({ name: 'auth', windowSeconds: 60, max: 20 });
+export const authLimiter = rateLimit({ name: 'auth', windowSeconds: 60, max: 60 });
 /** AI endpoints cost real money per call */
-export const aiLimiter = rateLimit({ name: 'ai', windowSeconds: 60, max: 10 });
+export const aiLimiter = rateLimit({ name: 'ai', windowSeconds: 60, max: 30 });
