@@ -3,6 +3,7 @@ import { prisma } from '../../prisma/prismaClient.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { ApiError } from '../utils/ApiError.js';
+import { cached, getVersion, statsVersionKey } from '../utils/cache.js';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 function getLocalIsoDate(date: Date | string | number = new Date()): string {
@@ -100,16 +101,7 @@ const getDailyTimeline = asyncHandler(async (req: Request, res: Response) => {
     .json(new ApiResponse(200, timeline, 'Daily timeline fetched successfully'));
 });
 
-const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
-
-  if (!userId) {
-    throw new ApiError(401, 'Unauthorized');
-  }
-
-  const { from } = req.query;
-  const userIdNum = Number(userId);
-
+const computeDashboardStats = async (userIdNum: number, from?: string) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -226,22 +218,35 @@ const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
     habitsCompletedByDate[todayDateStr] ?? new Set(),
   );
 
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      {
-        focusTimeArray,
-        habitCompletionRateByDate,
-        summary: {
-          todayFocusHrs: Number((todayFocus / 3600).toFixed(1)),
-          weeklyFocusHrsAvg: Number((weeklyFocusAverage / 3600).toFixed(1)),
-          perfectDaysLast21,
-          todayHabitRate,
-        },
-      },
-      'Dashboard stats fetched successfully',
-    ),
-  );
+  return {
+    focusTimeArray,
+    habitCompletionRateByDate,
+    summary: {
+      todayFocusHrs: Number((todayFocus / 3600).toFixed(1)),
+      weeklyFocusHrsAvg: Number((weeklyFocusAverage / 3600).toFixed(1)),
+      perfectDaysLast21,
+      todayHabitRate,
+    },
+  };
+};
+
+const getDashboardStats = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw new ApiError(401, 'Unauthorized');
+  }
+
+  const from = typeof req.query.from === 'string' ? req.query.from : undefined;
+  const userIdNum = Number(userId);
+
+  // The version in the key is bumped by invalidateStatsOnWrite on any mutation, and the
+  // day is in the key because "today" moves when no `from` is given.
+  const version = await getVersion(statsVersionKey(userIdNum));
+  const key = `stats:dashboard:${userIdNum}:v${version}:${from ?? getLocalIsoDate()}`;
+  const stats = await cached(key, 600, () => computeDashboardStats(userIdNum, from));
+
+  return res.status(200).json(new ApiResponse(200, stats, 'Dashboard stats fetched successfully'));
 });
 
 export { getDailyTimeline, getDashboardStats };

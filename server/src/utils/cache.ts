@@ -42,4 +42,28 @@ export async function invalidate(...keys: string[]): Promise<void> {
   }
 }
 
+/**
+ * Version-stamped keys: instead of finding and deleting every cached stats entry for a user
+ * (one per `from` date), we put a version number in the key and bump it on any write.
+ * Old entries become unreachable and expire on their own via their TTL.
+ */
+export async function getVersion(scopeKey: string): Promise<number> {
+  if (!isUp()) return 0;
+  try {
+    return Number((await redisClient.get(scopeKey)) ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+export async function bumpVersion(scopeKey: string): Promise<void> {
+  if (!isUp()) return;
+  try {
+    await redisClient.incr(scopeKey);
+  } catch {
+    // entries still expire via their TTL
+  }
+}
+
 export const userCacheKey = (id: number) => `user:${id}`;
+export const statsVersionKey = (userId: number) => `stats:version:${userId}`;

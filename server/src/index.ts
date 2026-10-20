@@ -18,6 +18,7 @@ import passport from 'passport';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { ApiResponse } from './utils/ApiResponse.js';
 import { connectRedis } from './config/redis.js';
+import { invalidateStatsOnWrite } from './middlewares/statsCache.middleware.js';
 import { apiLimiter } from './middlewares/rateLimit.middleware.js';
 
 let app = express();
@@ -48,15 +49,15 @@ app.get('/health', async (req: express.Request, res: express.Response) =>
 );
 app.use('/api', apiLimiter);
 app.use('/api/users', userRoute);
-app.use('/api/subject', subjectRoute);
-app.use('/api/habits', habitRoute);
-app.use('/api/todo', todoRoute);
+app.use('/api/subject', invalidateStatsOnWrite, subjectRoute);
+app.use('/api/habits', invalidateStatsOnWrite, habitRoute);
+app.use('/api/todo', invalidateStatsOnWrite, todoRoute);
 app.use('/api/auth', authRoute);
 app.use('/api/stats', statsRoute);
 app.use('/api/daily-rating', dailyRatingRoute);
 app.use('/api/export', exportRoute);
 app.use('/api/ai', aiRoute);
-app.use('/api/demo', demoRoute);
+app.use('/api/demo', invalidateStatsOnWrite, demoRoute);
 // Workspace routes
 app.use('/api/spaces', spaceRoute);
 app.use('/api/spaces/:spaceId/textboxes', textboxRoute);
