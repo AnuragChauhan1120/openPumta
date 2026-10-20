@@ -18,6 +18,7 @@ import passport from 'passport';
 import { errorHandler } from './middlewares/error.middleware.js';
 import { ApiResponse } from './utils/ApiResponse.js';
 import { connectRedis } from './config/redis.js';
+import { apiLimiter } from './middlewares/rateLimit.middleware.js';
 
 let app = express();
 
@@ -45,6 +46,7 @@ app.get('/', (req: express.Request, res: express.Response) =>
 app.get('/health', async (req: express.Request, res: express.Response) =>
   res.json(new ApiResponse(200, { health: 'very nice!!' }, 'success')),
 );
+app.use('/api', apiLimiter);
 app.use('/api/users', userRoute);
 app.use('/api/subject', subjectRoute);
 app.use('/api/habits', habitRoute);
