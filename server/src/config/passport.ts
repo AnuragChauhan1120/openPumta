@@ -5,6 +5,7 @@ import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import { prisma } from '../../prisma/prismaClient.js';
 import { ApiError } from '../utils/ApiError.js';
 import jwt from 'jsonwebtoken';
+import { cached, invalidate, userCacheKey } from '../utils/cache.js';
 import 'dotenv/config';
 
 const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
@@ -58,6 +59,7 @@ passport.use(
         }
 
         if (guestUser && guestUser.isGuest) {
+          await invalidate(userCacheKey(guestUser.id));
           user = await prisma.user.update({
             where: { id: guestUser.id },
             data: {
@@ -94,9 +96,10 @@ passport.use(
     },
     async (jwtPayload: any, done: (error: any, user?: any, info?: any) => void) => {
       try {
-        const user = await prisma.user.findUnique({
-          where: { id: jwtPayload.id },
-        });
+        // Runs on every authenticated request, so cache the row (5 min TTL, busted on update)
+        const user = await cached(userCacheKey(jwtPayload.id), 300, () =>
+          prisma.user.findUnique({ where: { id: jwtPayload.id } }),
+        );
 
         if (user) {
           return done(null, user);

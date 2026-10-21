@@ -4,6 +4,7 @@ import { Request, Response } from 'express';
 import asyncHandler from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { invalidate, userCacheKey } from '../utils/cache.js';
 
 // Users may only modify their own account; the :id param must match the token's user
 const resolveSelfId = (req: Request): number => {
@@ -39,6 +40,7 @@ const updateUser = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
+  await invalidate(userCacheKey(userId));
   return res.status(200).json(new ApiResponse(200, updatedUser, 'User updated successfully'));
 });
 
@@ -54,6 +56,7 @@ const deleteUser = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
+  await invalidate(userCacheKey(userId));
   return res.status(200).json(new ApiResponse(200, deletedUser, 'User deleted successfully'));
 });
 
@@ -94,6 +97,7 @@ const savePushToken = asyncHandler(async (req: Request, res: Response) => {
     where: { id: userId },
     data: { expoPushToken },
   });
+  await invalidate(userCacheKey(userId));
 
   return res
     .status(200)

@@ -3,6 +3,7 @@ import { Request, Response } from 'express';
 import asyncHandler from '../utils/asyncHandler.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
+import { invalidate, userCacheKey } from '../utils/cache.js';
 
 const createOrUpdateDailyRating = asyncHandler(async (req: Request, res: Response) => {
   const { rating, description, content, date } = req.body || {};
@@ -106,6 +107,7 @@ const updateReviewTemplate = asyncHandler(async (req: Request, res: Response) =>
     where: { id: userId },
     data: { reviewTemplate: template },
   });
+  await invalidate(userCacheKey(userId));
 
   res
     .status(200)
