@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { useTimerStore } from '@/store/useTimerStore';
 import { useTimerEngine } from '@/hooks/useTimerEngine';
 import ClockCircle from '../components/pomodoro/ClockCircle';
+import Stopwatch from '../components/pomodoro/Stopwatch';
 import { ConvertSecsToTimer, pad } from '@/lib/utils';
 import { IoIosPlay, IoIosRefresh, IoIosSkipForward, IoIosSquare } from 'react-icons/io';
 import { Progress } from '@/components/ui/progress';
@@ -39,15 +40,11 @@ function PomodoroPage() {
   };
 
   const handleSkip = () => {
-    if (phase === 'shortBreak' || phase === 'longBreak') {
-      store.skipBreak();
-    }
+    if (phase === 'shortBreak' || phase === 'longBreak') store.skipBreak();
   };
 
   const handleReset = () => {
-    if (confirm('Are you sure you want to reset the entire cycle?')) {
-      store.reset();
-    }
+    if (confirm('Are you sure you want to reset the entire cycle?')) store.reset();
   };
 
   if (isLoading) {
@@ -68,17 +65,10 @@ function PomodoroPage() {
   const currentFocusMs = lifetimeFocusMs + activeWorkSecs * 1000;
   const activeAvatar = (user?.activeAvatar as AvatarSet) || 'warrior';
 
-  const getSubjectLogSecs = (
-    log: NonNullable<(typeof Subjects)[number]['subjectLogs']>[number],
-  ) => {
+  const getSubjectLogSecs = (log: NonNullable<(typeof Subjects)[number]['subjectLogs']>[number]) => {
     if (log.durationSecs !== undefined) return log.durationSecs;
     if (log.duration !== undefined) return log.duration;
-    if (log.endedAt) {
-      return Math.max(
-        0,
-        Math.floor((new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000),
-      );
-    }
+    if (log.endedAt) return Math.max(0, Math.floor((new Date(log.endedAt).getTime() - new Date(log.startedAt).getTime()) / 1000));
     return 0;
   };
 
@@ -87,52 +77,34 @@ function PomodoroPage() {
       .filter((log) => new Date(log.startedAt).getTime() >= startOfToday)
       .reduce((acc, log) => acc + getSubjectLogSecs(log), 0);
 
-  const subjectWorkedSecs = runningSubject
-    ? getTodayWorkedSecs(runningSubject) + activeWorkSecs
-    : 0;
-
-  const totalWorkedSecs =
-    Subjects.reduce((acc, subject) => acc + getTodayWorkedSecs(subject), 0) + activeWorkSecs;
+  const subjectWorkedSecs = runningSubject ? getTodayWorkedSecs(runningSubject) + activeWorkSecs : 0;
+  const totalWorkedSecs = Subjects.reduce((acc, subject) => acc + getTodayWorkedSecs(subject), 0) + activeWorkSecs;
   let goalWorkSecs = 0;
 
-  if (runningSubject) {
-    goalWorkSecs = runningSubject.goalWorkSecs || 0;
-  }
+  if (runningSubject) goalWorkSecs = runningSubject.goalWorkSecs || 0;
 
   const isBreak = phase === 'shortBreak' || phase === 'longBreak';
-  const goalProgressPercent = goalWorkSecs
-    ? Math.min(100, (subjectWorkedSecs / goalWorkSecs) * 100)
-    : 0;
-  const formatDuration = (secs: number) =>
-    `${pad(Math.floor(secs / 3600))}:${pad(Math.floor((secs % 3600) / 60))}:${pad(Math.floor(secs % 60))}`;
+  const goalProgressPercent = goalWorkSecs ? Math.min(100, (subjectWorkedSecs / goalWorkSecs) * 100) : 0;
+  const formatDuration = (secs: number) => `${pad(Math.floor(secs / 3600))}:${pad(Math.floor((secs % 3600) / 60))}:${pad(secs % 60)}`;
 
   const getPhaseColor = () => {
     if (mode === 'stopwatch') return store.workColor;
     switch (phase) {
-      case 'work':
-        return store.workColor;
-      case 'shortBreak':
-        return store.shortBreakColor;
-      case 'longBreak':
-        return store.longBreakColor;
-      default:
-        return 'var(--muted-foreground)';
+      case 'work': return store.workColor;
+      case 'shortBreak': return store.shortBreakColor;
+      case 'longBreak': return store.longBreakColor;
+      default: return 'var(--muted-foreground)';
     }
   };
 
   const getPhaseLabel = () => {
     if (mode === 'stopwatch') return 'STOPWATCH';
     switch (phase) {
-      case 'work':
-        return 'WORK PHASE';
-      case 'shortBreak':
-        return 'SHORT BREAK';
-      case 'longBreak':
-        return 'LONG BREAK';
-      case 'idle':
-        return 'READY';
-      default:
-        return 'IDLE';
+      case 'work': return 'WORK, PHASE';
+      case 'shortBreak': return 'SHORT BREAK';
+      case 'longBreak': return 'LONG BREAK';
+      case 'idle': return 'READY';
+      default: return 'IDLE';
     }
   };
 
@@ -141,304 +113,83 @@ function PomodoroPage() {
   const loopIndex = Math.floor(progress / 100);
   const cyclePercent = progress % 100;
 
-  let currentColor = primaryColor;
-  let backgroundColor = 'var(--card)';
-  if (loopIndex > 0) {
-    if (loopIndex % 2 === 1) {
-      currentColor = secondaryColor;
-      backgroundColor = primaryColor;
-    } else {
-      currentColor = primaryColor;
-      backgroundColor = secondaryColor;
-    }
-  }
-
-  const phaseLabel =
-    getPhaseLabel().charAt(0).toUpperCase() + getPhaseLabel().slice(1).toLowerCase();
-
   return (
     <>
-      {/* ═══════════════════════════════════════════════════════════════
+      {/*
           LANDSCAPE LAYOUT — mobile & iPad landscape ONLY
           Breakpoint: @media (max-width: 1023px) and (orientation: landscape)
           Completely hidden in: portrait (all sizes) + desktop (lg+)
-      ═══════════════════════════════════════════════════════════════ */}
-      <section className="hidden max-lg:landscape:flex flex-row h-[calc(100dvh-4rem)] items-center justify-center  w-full bg-background overflow-hidden">
-        {/* LEFT zone — small clock circle */}
+      */}
+      <section className="hidden max-lg:landscape:flex flex-row h-[calc(100dvh-4rem)] items-center justify-center w-full bg-background overflow-hidden">
         <div className="flex items-center justify-center shrink-0 pl-3 py-2">
           <ClockCircle
             percent={cyclePercent}
             size="lg"
-            currentColor={currentColor}
-            backgroundColor={backgroundColor}
+            currentColor={primaryColor}
+            backgroundColor={loopIndex > 0 ? secondaryColor : 'var(--card)'}
           >
             <div className="flex flex-col items-center justify-center text-center select-none px-1">
-              <div
-                className="text-xl font-bold tabular-nums tracking-tight transition-colors duration-500 leading-none"
-                style={{ color: primaryColor, fontFamily: 'var(--font-timer)' }}
-              >
-                {isOverflow ? '+' : ''}
-                {pad(displayTime.hours)}:{pad(displayTime.minutes)}:{pad(displayTime.seconds)}
+              <div className="text-xl font-bold tabular-nums tracking-tight transition-colors duration-500 leading-none">
+                {isOverflow ? '+' : ''}{pad(displayTime.hours)}:{pad(displayTime.minutes)}:{pad(displayTime.seconds)}
               </div>
             </div>
           </ClockCircle>
         </div>
-
-        {/* CENTER zone — subject name, big time, phase, stats, buttons */}
         <div className="flex-1 flex flex-col justify-center items-center pl-5 pr-2 gap-1 min-w-0 overflow-hidden">
-          {/* Subject / phase name */}
-          <div className="text-sm font-medium text-muted-foreground/60">
-            {runningSubject ? (
-              <span className="text-foreground font-semibold text-base truncate block">
-                {runningSubject.name}
-              </span>
-            ) : (
-              phaseLabel
-            )}
-          </div>
-
-          {/* Large timer display */}
-          <div
-            className="text-4xl font-bold tabular-nums tracking-tight leading-none transition-colors duration-500"
-            style={{ color: primaryColor, fontFamily: 'var(--font-timer)' }}
-          >
-            {isOverflow ? '+' : ''}
-            {pad(displayTime.hours)}:{pad(displayTime.minutes)}:{pad(displayTime.seconds)}
-          </div>
-
-          {/* Phase sub-label */}
-          <div className="text-[11px] text-muted-foreground/50 tracking-wide">{phaseLabel}</div>
-
-          {/* Stats row */}
-          <div className="flex gap-6 mt-1">
-            <div>
-              <div className="text-[10px] font-medium text-muted-foreground/40 mb-0.5">
-                {runningSubject?.name || 'Subject'}
-              </div>
-              <div className="text-sm tabular-nums" style={{ fontFamily: 'var(--font-timer)' }}>
-                {formatDuration(subjectWorkedSecs)}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] font-medium text-muted-foreground/40 mb-0.5">
-                Total time today
-              </div>
-              <div className="text-sm tabular-nums" style={{ fontFamily: 'var(--font-timer)' }}>
-                {formatDuration(totalWorkedSecs)}
-              </div>
-            </div>
-          </div>
-
-          {/* Progress bar */}
-          {runningSubject && store.showProgressBar && (
-            <div className="w-full max-w-xs mt-0.5">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Progress
-                    value={goalProgressPercent}
-                    className="h-1.5 transition-all"
-                    indicatorStyle={{ backgroundColor: getPhaseColor() }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="font-semibold text-xs">
-                    {formatDuration(goalWorkSecs)} / {formatDuration(subjectWorkedSecs)}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+          {runningSubject ? (
+            <span className="text-foreground font-semibold text-base truncate block">{runningSubject.name}</span>
+          ) : (
+            phaseLabel
           )}
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-4 mt-2">
-            <Button
-              onClick={handleReset}
-              variant="outline"
-              className="rounded-full w-9 h-9"
-              aria-label="Reset timer"
-            >
-              <IoIosRefresh size={15} />
-            </Button>
-
-            {phase === 'work' || phase === 'idle' ? (
-              <Button
-                onClick={handleMainAction}
-                variant="secondary"
-                className="rounded-full w-12 h-12 shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
-                aria-label={phase === 'work' ? 'Stop timer' : 'Start timer'}
-              >
+          <div className="text-4xl font-bold tabular-nums tracking-tight leading-none transition-colors duration-500" style={{ color: primaryColor }}>
+            {isOverflow ? '+' : ''}{pad(displayTime.hours)}:{pad(displayTime.minutes)}:{pad(displayTime.seconds)}
+          </div>
+          <div className="text-[11px] text-muted-foreground/50 tracking-wide">{getPhaseLabel()}</div>
+          <div className="flex items-center gap-3 mt-1">
+            <Button onClick={handleReset} variant="outline" className="rounded-full w-9 h-9"><IoIosRefresh size={15} /></Button>
+            {(phase === 'work' || phase === 'idle') ? (
+              <Button onClick={handleMainAction} variant="secondary" className="rounded-full w-12 h-12 shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center" aria-label={phase === 'work' ? 'Stop timer' : 'Start timer'}>
                 {phase === 'work' ? <IoIosSquare size={22} /> : <IoIosPlay size={26} />}
               </Button>
-            ) : (
-              <div className="w-12 h-12" />
-            )}
-
-            {isBreak ? (
-              <Button
-                onClick={handleSkip}
-                variant="outline"
-                className="rounded-full w-9 h-9"
-                aria-label="Skip break"
-              >
-                <IoIosSkipForward size={15} />
-              </Button>
-            ) : (
-              <div className="w-9 h-9" />
-            )}
+            ) : <div className="w-12 h-12" />}
+            {isBreak ? <Button onClick={handleSkip} variant="outline" className="rounded-full w-9 h-9"><IoIosSkipForward size={15} /></Button> : <div className="w-9 h-9" />}
           </div>
-        </div>
-
-        {/* RIGHT zone — settings gear + avatar */}
-        <div className="flex flex-col items-center justify-center gap-3 pr-3 shrink-0">
-          <ClockDialogBox
-            child={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full text-muted-foreground hover:text-foreground"
-              >
-                <Settings2 className="h-4 w-4" />
-              </Button>
-            }
-          />
-          {/* {store.showAvatar && (
-            <AvatarSelectionDialog>
-              <AvatarDisplay activeAvatar={activeAvatar} focusMs={currentFocusMs} />
-            </AvatarSelectionDialog>
-          )} */}
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════
-          PORTRAIT + DESKTOP LAYOUT — original, 100% unchanged
+      {/*
+          PORTRAIT + DESKTOP LAYOUT — unchanged except for the independent stopwatch below
           Hidden only in: max-lg landscape (mobile/iPad landscape)
-      ═══════════════════════════════════════════════════════════════ */}
+      */}
       <section className="flex flex-col justify-between items-center h-[calc(100dvh-5.5rem)] lg:h-screen w-full p-4 md:p-6 lg:p-8 relative overflow-hidden bg-background max-lg:landscape:hidden">
-        <div className="w-full max-w-md flex items-center justify-center px-4 py-2 shrink-0 relative">
-          {runningSubject && (
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-center truncate mx-2 text-foreground px-8">
-              {runningSubject.name}
-            </h1>
-          )}
+        <div className="w-full max-w-md flex items-center justify-center px-4 py-2 shrink-0">
+          {runningSubject && <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-center truncate mx-2 text-foreground px-8">{runningSubject.name}</h1>}
           <div className="absolute right-4 top-1/2 -translate-y-1/2">
-            <ClockDialogBox
-              child={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full text-muted-foreground hover:text-foreground"
-                >
-                  <Settings2 className="h-5 w-5" />
-                </Button>
-              }
-            />
+            <ClockDialogBox child={<Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-foreground"><Settings2 className="h-5 w-5" /></Button>} />
           </div>
         </div>
-
         <div className="flex-1 flex flex-col justify-center items-center w-full px-4 md:px-10 gap-2 overflow-hidden">
-          <ClockCircle
-            percent={cyclePercent}
-            size="lg"
-            currentColor={currentColor}
-            backgroundColor={backgroundColor}
-          >
+          <ClockCircle percent={cyclePercent} size="lg" currentColor={primaryColor} backgroundColor={loopIndex > 0 ? secondaryColor : 'var(--card)'}>
             <div className="flex flex-col items-center justify-center p-2 text-center select-none">
-              <div
-                className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl font-bold mb-1 transition-colors duration-500 tracking-tight tabular-nums"
-                style={{ color: primaryColor, fontFamily: 'var(--font-timer)' }}
-              >
-                {isOverflow ? '+' : ''}
-                {pad(displayTime.hours)}:{pad(displayTime.minutes)}:{pad(displayTime.seconds)}
+              <div className="text-4xl xs:text-5xl sm:text-6xl md:text-7xl font-bold mb-1 transition-colors duration-500 tracking-tight tabular-nums">
+                {isOverflow ? '+' : ''}{pad(displayTime.hours)}:{pad(displayTime.minutes)}:{pad(displayTime.seconds)}
               </div>
-              <div className="text-xs sm:text-sm font-medium text-muted-foreground/70 tracking-wide mt-1">
-                {phaseLabel}
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-muted-foreground/70">
-                <div className="min-w-0">
-                  <div className="truncate text-[10px] sm:text-xs font-medium text-muted-foreground/50">
-                    {runningSubject?.name || 'Subject'}
-                  </div>
-                  <div
-                    className="text-xs sm:text-sm md:text-base tabular-nums"
-                    style={{ fontFamily: 'var(--font-timer)' }}
-                  >
-                    {formatDuration(subjectWorkedSecs)}
-                  </div>
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-[10px] sm:text-xs font-medium text-muted-foreground/50">
-                    Total today
-                  </div>
-                  <div
-                    className="text-xs sm:text-sm md:text-base tabular-nums"
-                    style={{ fontFamily: 'var(--font-timer)' }}
-                  >
-                    {formatDuration(totalWorkedSecs)}
-                  </div>
-                </div>
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground/70 tracking-wide mt-1">{getPhaseLabel()}</div>
+              <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-muted-foreground/70 text-xs sm:text-sm">
+                <div className="min-w-0"><div className="truncate text-[10px] sm:text-xs font-medium text-muted-foreground/50">{runningSubject?.name || 'Subject'}</div><div className="text-xs sm:text-sm tabular-nums">{formatDuration(subjectWorkedSecs)}</div></div>
+                <div className="min-w-0"><div className="truncate text-[10px] sm:text-xs font-medium text-muted-foreground/50">Total today</div><div className="text-xs sm:text-sm tabular-nums">{formatDuration(totalWorkedSecs)}</div></div>
               </div>
             </div>
           </ClockCircle>
-
-          {runningSubject && store.showProgressBar && (
-            <div className="w-full max-w-xs sm:max-w-md mt-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Progress
-                    value={goalProgressPercent}
-                    className="h-2.5 sm:h-4 transition-all"
-                    indicatorStyle={{ backgroundColor: getPhaseColor() }}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <div className="font-semibold text-xs sm:text-base">
-                    {formatDuration(goalWorkSecs)} / {formatDuration(subjectWorkedSecs)}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
-
-          {store.showAvatar && (
-            <div className="mt-6 sm:mt-10 mb-4 sm:mb-8 z-10">
-              <AvatarSelectionDialog>
-                <AvatarDisplay activeAvatar={activeAvatar} focusMs={currentFocusMs} />
-              </AvatarSelectionDialog>
-            </div>
-          )}
+          {runningSubject && store.showProgressBar && <div className="w-full max-w-xs sm:max-w-md mt-2"><Tooltip><TooltipTrigger asChild><Progress value={goalProgressPercent} className="h-2.5 sm:h-4 transition-all" indicatorStyle={{ backgroundColor: getPhaseColor() }} /></TooltipTrigger><TooltipContent><div className="font-semibold text-xs sm:text-base">{formatDuration(goalWorkSecs)} / {formatDuration(subjectWorkedSecs)}</div></TooltipContent></Tooltip></div>}
+          {store.showAvatar && <div className="mt-6 sm:mt-10 mb-4 sm:mb-8 z-10"><AvatarSelectionDialog><AvatarDisplay activeAvatar={activeAvatar} focusMs={currentFocusMs} /></AvatarSelectionDialog></div>}
         </div>
-
         <div className="flex items-center gap-6 md:gap-8 pb-6 sm:pb-8 shrink-0">
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
-          >
-            <IoIosRefresh size={20} />
-          </Button>
-
-          {phase === 'work' || phase === 'idle' ? (
-            <Button
-              onClick={handleMainAction}
-              variant="secondary"
-              className="rounded-full w-20 h-20 sm:w-24 sm:h-24 shadow-lg hover:scale-105 transition-all flex items-center justify-center"
-            >
-              {phase === 'work' ? <IoIosSquare size={32} /> : <IoIosPlay size={40} />}
-            </Button>
-          ) : (
-            <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center" />
-          )}
-
-          {isBreak && (
-            <Button
-              onClick={handleSkip}
-              variant="outline"
-              className="rounded-full w-12 h-12 sm:w-14 sm:h-14"
-            >
-              <IoIosSkipForward size={20} />
-            </Button>
-          )}
+          <Button onClick={handleReset} variant="outline" className="rounded-full w-12 h-12 sm:w-14 sm:h-14"><IoIosRefresh size={20} /></Button>
+          {(phase === 'work' || phase === 'idle') ? <Button onClick={handleMainAction} variant="secondary" className="rounded-full w-20 h-20 sm:w-24 sm:h-24 shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center" aria-label={phase === 'work' ? 'Stop timer' : 'Start timer'}>{phase === 'work' ? <IoIosSquare size={32} /> : <IoIosPlay size={40} />}</Button> : <div className="w-20 h-20 sm:w-24 sm:h-24" />}
+          {isBreak ? <Button onClick={handleSkip} variant="outline" className="rounded-full w-12 h-12 sm:w-14 sm:h-14"><IoIosSkipForward size={20} /></Button> : <div className="w-12 h-12 sm:w-14 sm:h-14" />}
         </div>
+        <Stopwatch />
       </section>
     </>
   );
