@@ -17,16 +17,17 @@ export const useStopwatchStore = create<StopwatchState>()(
     (set, get) => ({
       startedAt: null,
       accumulatedMs: 0,
-      start: () => set({ startedAt: Date.now() }),
+      start: () => {
+        if (get().startedAt === null) set({ startedAt: Date.now() });
+      },
       pause: () => {
         const { startedAt, accumulatedMs } = get();
         if (startedAt === null) return;
-        set({
-          startedAt: null,
-          accumulatedMs: accumulatedMs + Math.max(0, Date.now() - startedAt),
-        });
+        set({ accumulatedMs: accumulatedMs + Date.now() - startedAt, startedAt: null });
       },
-      resume: () => set({ startedAt: Date.now() }),
+      resume: () => {
+        if (get().startedAt === null) set({ startedAt: Date.now() });
+      },
       reset: () => set({ startedAt: null, accumulatedMs: 0 }),
     }),
     { name: 'stopwatch-storage' },
