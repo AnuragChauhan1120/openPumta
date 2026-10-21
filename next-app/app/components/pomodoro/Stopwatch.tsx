@@ -1,36 +1,41 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useStopwatchStore } from '@/store/useStopwatchStore';
+import { getStopwatchElapsedMs, useStopwatchStore } from '@/store/useStopwatchStore';
 
-const format = (ms: number) => {
-  const totalSeconds = Math.floor(ms / 1000);
-  return `${String(Math.floor(totalSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0')}:${String(totalSeconds % 60).padStart(2, '0')}`;
+const formatElapsed = (milliseconds: number) => {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
 export default function Stopwatch() {
-  const { startedAt, accumulatedMs, start, pause, resume, reset } = useStopwatchStore();
+  const state = useStopwatchStore();
   const [now, setNow] = useState(() => Date.now());
-  const running = startedAt !== null;
-  const elapsed = accumulatedMs + (running ? Math.max(0, now - startedAt) : 0);
 
   useEffect(() => {
-    if (!running) return;
-    const id = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, [running]);
+    if (state.startedAt === null) return;
+    const interval = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(interval);
+  }, [state.startedAt]);
 
-  useEffect(() => setNow(Date.now()), [startedAt, accumulatedMs]);
+  const elapsedMs = getStopwatchElapsedMs(state, now);
 
   return (
-    <div className="flex flex-col items-center gap-2" aria-label="Stopwatch">
-      <span className="font-mono text-lg tabular-nums">{format(elapsed)}</span>
+    <section aria-label="Standalone stopwatch" className="flex flex-col items-center gap-3">
+      <time className="font-mono text-3xl tabular-nums" dateTime={`PT${Math.floor(elapsedMs / 1000)}S`}>
+        {formatElapsed(elapsedMs)}
+      </time>
       <div className="flex gap-2">
-        <button type="button" onClick={running ? pause : (accumulatedMs ? resume : start)}>
-          {running ? 'Pause' : accumulatedMs ? 'Resume' : 'Start'}
-        </button>
-        <button type="button" onClick={reset}>Reset</button>
+        {state.startedAt === null ? (
+          <button type="button" onClick={state.accumulatedMs === 0 ? state.start : state.resume}>Start</button>
+        ) : (
+          <button type="button" onClick={state.pause}>Pause</button>
+        )}
+        <button type="button" onClick={state.reset}>Reset</button>
       </div>
-    </div>
+    </section>
   );
 }
